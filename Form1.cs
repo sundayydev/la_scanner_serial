@@ -77,8 +77,21 @@ namespace SerialScannerApp
             if (ports.Length > 0)
             {
                 cbPorts.Items.AddRange(ports);
-                cbPorts.SelectedIndex = 0;
-                lblStatus.Text = "Chọn cổng COM và nhấn Kết nối.";
+                
+                // Kiểm tra xem có cổng đã lưu trước đó không
+                string lastPort = Properties.Settings.Default.LastCOMPort;
+                if (!string.IsNullOrEmpty(lastPort) && ports.Contains(lastPort))
+                {
+                    // Chọn cổng đã lưu thay vì cổng đầu tiên
+                    cbPorts.SelectedItem = lastPort;
+                    lblStatus.Text = $"Đã chọn cổng {lastPort} (đã lưu trước đó).";
+                }
+                else
+                {
+                    // Nếu không có cổng đã lưu, chọn cổng đầu tiên
+                    cbPorts.SelectedIndex = 0;
+                    lblStatus.Text = "Chọn cổng COM và nhấn Kết nối.";
+                }
             }
             else
             {
@@ -200,11 +213,16 @@ namespace SerialScannerApp
                 Parity parity = (Parity)cbParity.SelectedItem;
                 Handshake handshake = (Handshake)cbHandshake.SelectedItem;
 
-                scanner.Connect(cbPorts.SelectedItem.ToString(), baudRate, dataBits, stopBits, parity, handshake);
+                string selectedPort = cbPorts.SelectedItem.ToString();
+                scanner.Connect(selectedPort, baudRate, dataBits, stopBits, parity, handshake);
                 btnConnect.Enabled = false;
                 btnDisconnect.Enabled = true;
                 cbPorts.Enabled = false;
                 SetConnectionState(true);
+                
+                // Lưu cổng đã kết nối để tự động kết nối lần sau
+                Properties.Settings.Default.LastCOMPort = selectedPort;
+                Properties.Settings.Default.Save();
             }
             catch (Exception ex)
             {
@@ -272,6 +290,10 @@ namespace SerialScannerApp
                         cbPorts.Enabled = false;
                         SetConnectionState(true);
                         lblStatus.Text = $"Đã tự động kết nối: {scannerPort}";
+                        
+                        // Lưu cổng đã kết nối để tự động kết nối lần sau
+                        Properties.Settings.Default.LastCOMPort = scannerPort;
+                        Properties.Settings.Default.Save();
                     }
                     else
                     {
@@ -344,8 +366,21 @@ namespace SerialScannerApp
                         // Quan trọng: Cập nhật lại ComboBox UI cho khớp với thực tế
                         // Vì lúc Form_Load chạy có thể chưa nhận diện được cổng này
                         cbPorts.Items.Clear();
-                        cbPorts.Items.AddRange(availablePorts);
+                        cbPorts.Items.AddRange(availablePorts.OrderBy(p => p).ToArray());
+                        
+                        // Đảm bảo chọn đúng cổng đã lưu
                         cbPorts.SelectedItem = lastPort;
+                        
+                        // Verify rằng đã chọn đúng
+                        if (cbPorts.SelectedItem?.ToString() != lastPort)
+                        {
+                            // Nếu SelectedItem không work, thử dùng SelectedIndex
+                            int index = Array.IndexOf(availablePorts, lastPort);
+                            if (index >= 0)
+                            {
+                                cbPorts.SelectedIndex = index;
+                            }
+                        }
 
                         // Lấy các thông số cấu hình từ Settings
                         int baudRate = Properties.Settings.Default.BaudRate;
