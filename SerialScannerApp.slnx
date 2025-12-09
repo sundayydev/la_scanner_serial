@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="SerialScannerApp.csproj" Id="45a307c7-f651-4126-bc08-2889ce8063a9">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+</Solution>
